@@ -1,5 +1,5 @@
 # Stop Moving My Windows
-A tray application created to stop Windows from rearranging windows when the screen was turned off after idle time.
+A tray application created to stop Windows from rearranging windows when returning after the screen was turned off after idle time.
 
 ## How it works
 The application hooks into the display power system notification and
