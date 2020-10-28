@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace StopMovingMyWindows.Windows
 {
@@ -53,6 +51,9 @@ namespace StopMovingMyWindows.Windows
         #endregion
 
 
+        /// <summary>
+        /// Get a list of visible windows
+        /// </summary>
         public static IEnumerable<Window> GetWindows()
         {
             var windows = new List<Window>();
@@ -81,25 +82,32 @@ namespace StopMovingMyWindows.Windows
             }
 
             // Get window position and size, ignore if size is negative (minimized)
-            var position = GetPosition(handle);
-            if (position.X <= -32000 || position.Y <= -32000) return true;
+            var positionAndSize = GetPositionAndSize(handle);
+            if (positionAndSize.X <= -32000 || positionAndSize.Y <= -32000 ||
+                positionAndSize.Width < 5 || positionAndSize.Height < 5) return true;
 
             // Add to list
-            windows.Add(new Window(handle, position, name));
+            windows.Add(new Window(handle, positionAndSize.Location, name));
 
-            Debug.Print("Window found with handle '{0}' and position '{1}' with name '{2}'", handle, position, name);
+            Debug.Print("Window found with handle '{0}' and rectangle '{1}' with name '{2}'", handle, positionAndSize, name);
             return true;
         }
 
 
-        public static Point GetPosition(IntPtr handle)
+        /// <summary>
+        /// Get window position and size by handle
+        /// </summary>
+        public static Rectangle GetPositionAndSize(IntPtr handle)
         {
             var rectangle = new Rectangle();
             GetWindowRect(handle, ref rectangle);
-            return rectangle.Location;
+            return rectangle;
         }
 
 
+        /// <summary>
+        /// Set window position by handle
+        /// </summary>
         public static void SetPosition(IntPtr handle, Point position)
         {
             SetWindowPos(handle, IntPtr.Zero, position.X, position.Y, 0, 0, WindowPositionFlags.IgnoreResize | WindowPositionFlags.IgnoreZOrder | WindowPositionFlags.DoNotSendChangingEvent);

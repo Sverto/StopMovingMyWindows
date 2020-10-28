@@ -9,39 +9,48 @@ using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace StopMovingMyWindows
 {
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        public Form1()
+        private IEnumerable<Window> _Windows;
+        private DisplayPowerStateEventHandler _Dpseh;
+
+
+        public MainForm()
         {
             InitializeComponent();
+            // Hook into Display Power State changes
             _Dpseh = new DisplayPowerStateEventHandler(this.Handle);
             _Dpseh.OnDisplayOff += OnDisplayOff;
             _Dpseh.OnDisplayOn += OnDisplayOn;
         }
 
 
+        protected override void WndProc(ref Message m)
+        {
+            base.WndProc(ref m);
+            // Catch Display Power State changes 
+            _Dpseh?.WndProcHook(ref m);
+        }
+
+
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Dispose Display Power State object
             _Dpseh?.Dispose();
             _Dpseh = null;
         }
 
 
-        protected override void WndProc(ref Message m)
-        {
-            base.WndProc(ref m);
-            _Dpseh?.WndProcHook(ref m); // Hook into display powerstate event
-        }
-
-
         protected override void SetVisibleCore(bool value)
         {
-            base.SetVisibleCore(false); // Hide Form, use tray
+            // Hide Form, use tray
+            base.SetVisibleCore(false);
         }
 
 
@@ -52,30 +61,42 @@ namespace StopMovingMyWindows
 
 
         #region Display PowerState Event Handling
-        private IEnumerable<Window> _Windows;
-        private DisplayPowerStateEventHandler _Dpseh;
-
         private void OnDisplayOff(object sender, EventArgs e)
         {
-            // Store last window positions on display poweroff
+            // Store last window positions on display power off
             _Windows = WindowHelper.GetWindows();
+            Debug.Print($"Stored window positions");
         }
 
         private void OnDisplayOn(object sender, EventArgs e)
         {
             if (_Windows == null) return;
-            
-            // Restore window positions on display poweron
+
+            // Restore window positions on display power on
             foreach (var window in _Windows)
             {
-                if (WindowHelper.GetPosition(window.Handle) != window.Position)
+                if (WindowHelper.GetPositionAndSize(window.Handle).Location != window.Position)
                 {
                     Debug.Print($"Restoring window position '{window.Name}'");
                     WindowHelper.SetPosition(window.Handle, window.Position);
                 }
             }
+            Debug.Print($"Restored window positions");
         }
         #endregion
+
+
+#if DEBUG
+        // Test
+        private async void MenuItemSimulatePowerOffOn_Click(object sender, EventArgs e)
+        {
+            MenuItemSimulatePowerOffOn.Enabled = false;
+            OnDisplayOff(this, EventArgs.Empty);
+            await Task.Delay(1000);
+            OnDisplayOn(this, EventArgs.Empty);
+            MenuItemSimulatePowerOffOn.Enabled = true;
+        }
+#endif
 
     }
 }

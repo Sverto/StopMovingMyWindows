@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace StopMovingMyWindows.Power
@@ -21,36 +17,44 @@ namespace StopMovingMyWindows.Power
 
 
         #region Events
-        public delegate void DisplayOffEventHandler(object sender, EventArgs e);
+        /// <summary>Triggered when display is powered off</summary>
         public event DisplayOffEventHandler OnDisplayOff;
+        public delegate void DisplayOffEventHandler(object sender, EventArgs e);
 
-        public delegate void DisplayOnEventHandler(object sender, EventArgs e);
+        /// <summary>Triggered when display is powered on</summary>
         public event DisplayOnEventHandler OnDisplayOn;
+        public delegate void DisplayOnEventHandler(object sender, EventArgs e);
 
-        public delegate void DisplayDimmedEventHandler(object sender, EventArgs e);
+        /// <summary>Triggered when display is dimmed</summary>
         public event DisplayDimmedEventHandler OnDisplayDimmed;
+        public delegate void DisplayDimmedEventHandler(object sender, EventArgs e);
         #endregion
 
 
         protected bool _Disposed = false;
-        private readonly IntPtr _Handle;
         private readonly IntPtr _PowerSettingNotification;
 
 
+        /// <summary>
+        /// Register for DisplayPowerState system notifications.
+        /// A call to <see cref="WndProcHook"/> is required in the <see cref="Form.WndProc"/> method for the <see cref="OnDisplayOff"/>, <see cref="OnDisplayOn"/> and <see cref="OnDisplayDimmed"/> events to work.
+        /// </summary>
+        /// <param name="handle">The handle of the current process (example: myForm.Handle)</param>
         public DisplayPowerStateEventHandler(IntPtr handle)
         {
-            _Handle = handle;
+            // Register for system DisplayPowerState notifications
             _PowerSettingNotification = RegisterPowerSettingNotification(handle, ref DisplayPowerStateNatives.GUID_CONSOLE_DISPLAY_STATE, DisplayPowerStateNatives.DEVICE_NOTIFY_WINDOW_HANDLE);
         }
 
 
         /// <summary>
-        /// Override your Form WndProc method and add a call to this method.
-        /// This is required if you want to detect display powerstate changes.
+        /// Override the <see cref="Form.WndProc"/> method and add a call to this method for the <see cref="OnDisplayOff"/>, <see cref="OnDisplayOn"/> and <see cref="OnDisplayDimmed"/> events to work.
         /// </summary>
         public void WndProcHook(ref Message m)
         {
-            // Hook into display powerstate event
+            if (_Disposed) return;
+
+            // Catch PBT_POWERSETTINGCHANGE event
             switch (m.Msg)
             {
                 case DisplayPowerStateNatives.WM_POWERBROADCAST:
@@ -60,6 +64,7 @@ namespace StopMovingMyWindows.Power
                         if (s.PowerSetting == DisplayPowerStateNatives.GUID_CONSOLE_DISPLAY_STATE)
                         {
                             Debug.Print($"Display powerstate change detected: {(DisplayPowerState)s.Data}");
+                            // Trigger event based on DisplayPowerState
                             switch ((DisplayPowerState)s.Data)
                             {
                                 case DisplayPowerState.Off:
@@ -79,11 +84,15 @@ namespace StopMovingMyWindows.Power
         }
 
 
+        /// <summary>
+        /// Unregister for system DisplayPowerState notifications and stop processing WndProc Messages
+        /// </summary>
         public void Dispose()
         {
             if (!_Disposed)
             {
                 _Disposed = true;
+                // Unregister for system DisplayPowerState notifications
                 UnregisterPowerSettingNotification(_PowerSettingNotification);
             }
         }
