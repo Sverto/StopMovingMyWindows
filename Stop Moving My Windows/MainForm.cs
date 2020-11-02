@@ -57,7 +57,7 @@ namespace StopMovingMyWindows
 
         #region Display PowerState Event Handling
         /// <summary>
-        /// Trigged when any display is turned off
+        /// Triggered when any display is turned off
         /// </summary>
         private void OnDisplayOff(object sender, EventArgs e)
         {
@@ -67,7 +67,7 @@ namespace StopMovingMyWindows
         }
 
         /// <summary>
-        /// Trigged when any display is turned on
+        /// Triggered when any display is turned on
         /// </summary>
         private async void OnDisplayOn(object sender, EventArgs e)
         {
