@@ -52,65 +52,62 @@ namespace StopMovingMyWindows.Windows
 
 
         /// <summary>
-        /// Get a list of visible windows
+        /// Set window position by handle
         /// </summary>
-        public static IEnumerable<Window> GetWindows()
+        public static void SetWindowPosition(IntPtr handle, Point position)
         {
-            var windows = new List<Window>();
-            EnumWindows(delegate (IntPtr handle, int lParam) { return EnumWindow(handle, windows); }, 0);
-            return windows;
+            SetWindowPos(handle, IntPtr.Zero, position.X, position.Y, 0, 0, 
+                         WindowPositionFlags.IgnoreResize | WindowPositionFlags.IgnoreZOrder | WindowPositionFlags.DoNotSendChangingEvent);
         }
 
 
-        private static bool EnumWindow(IntPtr handle, List<Window> windows)
+        /// <summary>
+        /// Get window title by handle
+        /// </summary>
+        /// <returns>Title or null when window has none</returns>
+        public static string GetWindowTitle(IntPtr handle)
         {
-            // Ignore hidden Windows
-            if (!IsWindowVisible(handle)) return true;
-
-            // Get window title, ignore otherwise
-            string name;
+            string title = null;
             int titleLength = GetWindowTextLength(handle);
             if (titleLength > 0)
             {
                 StringBuilder titleBuilder = new StringBuilder(titleLength);
                 GetWindowText(handle, titleBuilder, titleLength + 1);
-                name = titleBuilder.ToString();
+                title = titleBuilder.ToString();
             }
-            else
-            {
-                return true;
-            }
+            return title;
+        }
 
-            // Get window position and size, ignore if size is negative (minimized)
-            var positionAndSize = GetPositionAndSize(handle);
-            if (positionAndSize.X <= -32000 || positionAndSize.Y <= -32000 ||
-                positionAndSize.Width < 5 || positionAndSize.Height < 5) return true;
+
+        /// <summary>
+        /// Get a list of visible windows
+        /// </summary>
+        public static IEnumerable<WindowPosition> GetWindowPositions()
+        {
+            var windows = new List<WindowPosition>();
+            EnumWindows(delegate (IntPtr handle, int lParam) { return ValidateAndEnlistWindow(handle, windows); }, 0);
+            return windows;
+        }
+
+        private static bool ValidateAndEnlistWindow(IntPtr handle, List<WindowPosition> windows)
+        {
+            // Ignore hidden Windows
+            if (!IsWindowVisible(handle)) return true;
+
+            // Get window title, ignore otherwise
+            string windowTitle = GetWindowTitle(handle);
+            if (windowTitle == null) return true;
+
+            // Get window position and size, ignore if position is negative (minimized) or size <= 0
+            var windowRect = new Rectangle();
+            GetWindowRect(handle, ref windowRect);
+            if (windowRect.X <= -32000 || windowRect.Y <= -32000 ||
+                windowRect.Width <= 0 || windowRect.Height <= 0) return true;
 
             // Add to list
-            windows.Add(new Window(handle, positionAndSize.Location, name));
+            windows.Add(new WindowPosition(handle, windowRect.Location, windowTitle));
 
-            Debug.Print("Window found with handle '{0}' and rectangle '{1}' with name '{2}'", handle, positionAndSize, name);
             return true;
-        }
-
-
-        /// <summary>
-        /// Get window position and size by handle
-        /// </summary>
-        public static Rectangle GetPositionAndSize(IntPtr handle)
-        {
-            var rectangle = new Rectangle();
-            GetWindowRect(handle, ref rectangle);
-            return rectangle;
-        }
-
-
-        /// <summary>
-        /// Set window position by handle
-        /// </summary>
-        public static void SetPosition(IntPtr handle, Point position)
-        {
-            SetWindowPos(handle, IntPtr.Zero, position.X, position.Y, 0, 0, WindowPositionFlags.IgnoreResize | WindowPositionFlags.IgnoreZOrder | WindowPositionFlags.DoNotSendChangingEvent);
         }
 
     }

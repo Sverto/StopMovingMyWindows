@@ -32,6 +32,7 @@ namespace StopMovingMyWindows.Power
 
 
         protected bool _Disposed = false;
+        private bool skippedFirstEvent = false;
         private readonly IntPtr _PowerSettingNotification;
 
 
@@ -63,6 +64,13 @@ namespace StopMovingMyWindows.Power
                         var s = (DisplayPowerStateNatives.POWERBROADCAST_SETTING)Marshal.PtrToStructure(m.LParam, typeof(DisplayPowerStateNatives.POWERBROADCAST_SETTING));
                         if (s.PowerSetting == DisplayPowerStateNatives.GUID_CONSOLE_DISPLAY_STATE)
                         {
+                            // Skip first event which is triggered on start but useless
+                            if (skippedFirstEvent == false)
+                            {
+                                skippedFirstEvent = true;
+                                return;
+                            }
+
                             Debug.Print($"Display powerstate change detected: {(DisplayPowerState)s.Data}");
                             // Trigger event based on DisplayPowerState
                             switch ((DisplayPowerState)s.Data)
