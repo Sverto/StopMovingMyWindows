@@ -76,13 +76,13 @@ namespace StopMovingMyWindows.Power
                             switch ((DisplayPowerState)s.Data)
                             {
                                 case DisplayPowerState.Off:
-                                    OnDisplayOff(this, EventArgs.Empty);
+                                    OnDisplayOff?.Invoke(this, EventArgs.Empty);
                                     break;
                                 case DisplayPowerState.On:
-                                    OnDisplayOn(this, EventArgs.Empty);
+                                    OnDisplayOn?.Invoke(this, EventArgs.Empty);
                                     break;
                                 case DisplayPowerState.Dimmed:
-                                    OnDisplayDimmed(this, EventArgs.Empty);
+                                    OnDisplayDimmed?.Invoke(this, EventArgs.Empty);
                                     break;
                             }
                         }
